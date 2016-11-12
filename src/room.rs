@@ -7,13 +7,13 @@ use core::deserialize_vec;
 
 use std::collections::HashMap;
 
-struct Room {
-	id: String,
-	name: String,
-	description: String,
-	items: Vec<String>,
-	individuals: Vec<String>,
-	exits: HashMap<String, String>
+pub struct Room {
+	pub id: String,
+	pub name: String,
+	pub description: String,
+	pub items: Vec<String>,
+	pub actors: Vec<String>,
+	pub exits: HashMap<String, String>
 }
 
 impl core::Itemizeable for Room {
@@ -25,15 +25,15 @@ impl core::Itemizeable for Room {
 			let desc = item.item_meta.get("desc").cloned().unwrap_or(String::new());
 			let items_str = item.item_meta.get("items").cloned().unwrap_or(String::new());
 			let items = deserialize_vec(&items_str);
-			let ind_str = item.item_meta.get("ind").cloned().unwrap_or(String::new());
-			let ind = deserialize_vec(&ind_str);
+			let actors_str = item.item_meta.get("actors").cloned().unwrap_or(String::new());
+			let actors = deserialize_vec(&actors_str);
 			let exits = deserialize_hashmap(&item.item_meta.get("exits").cloned().unwrap_or(String::new()));
 			Some(Box::new(Room {
 				id: item.item_id.clone(),
 				name: name,
 				description: desc,
 				items: items,
-				individuals: ind,
+				actors: actors,
 				exits: exits
 			}))
 		}
@@ -52,7 +52,7 @@ impl core::Itemizeable for Room {
 		metas.insert("name".to_string(), self.name.clone());
 		metas.insert("desc".to_string(), self.description.clone());
 		metas.insert("items".to_string(), serialize_vec(&self.items));
-		metas.insert("ind".to_string(), serialize_vec(&self.individuals));
+		metas.insert("actors".to_string(), serialize_vec(&self.actors));
 		metas.insert("exits".to_string(), serialize_hashmap(&self.exits));
 	}
 	fn get_id(&self) -> &str {
