@@ -20,8 +20,26 @@ impl Storage {
 			items: HashMap::new()
 		}
 	}
-	pub fn insert(&mut self, item: Item) {
-		self.items.insert(item.item_id.clone(), item);
+	pub fn insert<T>(&mut self, item: Box<T>) 
+			where T: Itemizeable {
+		let item_id = item.get_id();
+		if self.items.contains_key(item_id) {
+			let mut stored_item = self.items.get_mut(item_id).unwrap();
+			item.merge_into_item(stored_item);
+		} else {
+			let item = item.to_item();
+			self.items.insert(item_id.to_string(), item);
+		}
+	}
+	pub fn get_item<T>(&self, item_id: &str) -> Option<Box<T>>
+			where T: Itemizeable {
+		let item_option = self.items.get(item_id);
+		if item_option.is_none() {
+			None
+		} else {
+			let item = item_option.unwrap();
+			T::from_item(item)
+		}
 	}
 }
 
@@ -47,6 +65,7 @@ impl Actions {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct Item {
 	item_type: String,
 	item_id: String,
@@ -87,8 +106,24 @@ impl Response {
 }
 
 pub trait Itemizeable {
-	fn from_item(item: &Item) -> Self;
+	fn from_item(item: &Item) -> Option<Box<Self>>;
 	fn to_item(&self) -> Item;
+	fn merge_into_item(&self, item: &mut Item);
+	fn get_id(&self) -> &str;
+}
+impl Itemizeable for Item {
+	fn from_item(item: &Item) -> Option<Box<Item>> {
+		Some(Box::new(item.clone()))
+	}
+	fn to_item(&self) -> Item {
+		self.clone()
+	}
+	fn merge_into_item(&self, item: &mut Item) {
+		for (key, value) in self.item_meta.iter() {
+			item.item_meta.insert(key.clone(), value.clone());
+		}
+	}
+	fn get_id(&self) -> &str { &self.item_id }
 }
 
 
@@ -120,12 +155,16 @@ impl Ingame {
 	pub fn get_response(&self, channel: &str) -> &str {
 		self.response.get_response(channel)
 	}
+	pub fn get_item<T>(&self, item_id: &str) -> Option<Box<T>>
+			where T: Itemizeable {
+		self.storage.get_item(item_id)
+	}
 }
 
 impl<'a> MutIngame<'a> {
-	pub fn insert_item<T>(&mut self, item: &T)
+	pub fn insert_item<T>(&mut self, item: Box<T>)
 			where T: Itemizeable {
-		self.ingame.storage.insert(item.to_item())
+		self.ingame.storage.insert(item)
 	}
 
 	pub fn add_action(&mut self, action: Action) {
