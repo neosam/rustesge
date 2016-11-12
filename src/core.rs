@@ -41,6 +41,14 @@ impl Storage {
 			T::from_item(item)
 		}
 	}
+	pub fn all_of_type<T>(&self) -> Vec<Box<T>> 
+			where T: Itemizeable {
+		self.items.values()
+			.map(|x| T::from_item(x))
+			.filter(|x| x.is_some())
+			.map(|x| x.unwrap())
+			.collect()
+	}
 }
 
 pub struct Actions {
@@ -159,12 +167,20 @@ impl Ingame {
 			where T: Itemizeable {
 		self.storage.get_item(item_id)
 	}
+	pub fn all_of_type<T>(&self) -> Vec<Box<T>> 
+			where T: Itemizeable {
+		self.storage.all_of_type()
+	}
 }
 
 impl<'a> MutIngame<'a> {
 	pub fn insert_item<T>(&mut self, item: Box<T>)
 			where T: Itemizeable {
 		self.ingame.storage.insert(item)
+	}
+	pub fn get_item<T>(&self, item_id: &str) -> Option<Box<T>> 
+			where T: Itemizeable {
+		self.ingame.get_item(item_id)
 	}
 
 	pub fn add_action(&mut self, action: Action) {
