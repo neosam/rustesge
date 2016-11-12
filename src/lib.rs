@@ -1,4 +1,5 @@
 pub mod core;
+pub mod room;
 
 #[cfg(test)]
 mod tests {

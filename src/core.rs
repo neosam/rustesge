@@ -67,9 +67,9 @@ impl Actions {
 
 #[derive(Clone, Debug)]
 pub struct Item {
-	item_type: String,
-	item_id: String,
-	item_meta: HashMap<String, String>
+	pub item_type: String,
+	pub item_id: String,
+	pub item_meta: HashMap<String, String>
 }
 
 type Action = Box<Fn(&mut MutIngame)>;
@@ -182,6 +182,47 @@ impl<'a> MutIngame<'a> {
 	pub fn append_response(&mut self, channel: &str, msg: &str) {
 		self.ingame.response.append_response(channel, msg)
 	}
+}
+
+
+pub fn serialize_vec(vec: &Vec<String>) -> String {
+	vec.join(";").to_string()
+}
+
+pub fn deserialize_vec(string: &str) -> Vec<String> {
+	string.split(";").map(|x| x.trim().to_string()).collect()
+}
+
+
+pub fn serialize_hashmap(map: &HashMap<String, String>) -> String {
+	let mut res = String::new();
+	let mut first = true;
+	for (key, value) in map {
+		if !first {
+			res.push_str(";");
+			first = false;
+		}
+		res.push_str(key);
+		res.push_str(";");
+		res.push_str(value);
+	}
+	res
+}
+
+pub fn deserialize_hashmap(string: &str) -> HashMap<String, String> {
+	let mut split = string.split(";");
+	let mut res = HashMap::new();
+	loop {
+		let key_option = split.next();
+		let value_option = split.next();
+		if key_option.is_none() || value_option.is_none() {
+			break;
+		}
+		let key = key_option.unwrap().to_string();
+		let value = value_option.unwrap().to_string();
+		res.insert(key, value);
+	}
+	res
 }
 
 
