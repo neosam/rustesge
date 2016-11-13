@@ -79,8 +79,17 @@ pub struct Item {
 	pub item_id: String,
 	pub item_meta: HashMap<String, String>
 }
+impl Item {
+	pub fn new(item_type: String, item_id: String) -> Self {
+		Item {
+			item_type: item_type,
+			item_id: item_id,
+			item_meta: HashMap::new()
+		}
+	}
+}
 
-type Action = Box<Fn(&mut MutIngame)>;
+pub type Action = Box<Fn(&mut MutIngame)>;
 
 pub struct Response {
 	items: HashMap<String, String>
@@ -139,6 +148,13 @@ impl Ingame {
 	pub fn new() -> Self {
 		Ingame {
 			storage: Storage::new(),
+			actions: Actions::new(),
+			response: Response::new(),
+		}
+	}
+	pub fn with_storage(storage: Storage) -> Self {
+		Ingame {
+			storage: storage,
 			actions: Actions::new(),
 			response: Response::new(),
 		}

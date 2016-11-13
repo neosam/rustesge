@@ -1,3 +1,4 @@
+use core;
 use core::{Ingame, MutIngame};
 use core::Item;
 use actor::Actor;
@@ -74,4 +75,49 @@ pub fn actors_in_room(ingame: &Ingame, room: &Room) -> Vec<Box<Actor>> {
 		.filter(|x| x.is_some())
 		.map(|x| x.unwrap())
 		.collect()
+}
+
+
+pub type PlausabilityCheck = Box<Fn(&Ingame) -> Option<String>>;
+
+pub struct EsgePackage {
+	init_action: core::Action,
+	plausability_check: PlausabilityCheck
+}
+
+pub fn init_packages(storage: core::Storage, packages: Vec<EsgePackage>) -> Result<Ingame, String> {
+	let mut ingame = Ingame::with_storage(storage);
+	for package in packages {
+		let plausability_check = &package.plausability_check;
+		let result = plausability_check(&ingame);
+		if result.is_some() {
+			return Err(result.unwrap())
+		}
+		ingame.add_action(package.init_action);
+	}
+	Ok(ingame)
+}
+
+
+pub struct BaseGame {
+	pub player: String
+}
+
+impl core::Itemizeable for BaseGame {
+	fn from_item(item: &Item) -> Option<Box<Self>> {
+		Some(Box::new(BaseGame {
+			player: item.item_meta.get("player").cloned().unwrap_or(String::new())
+		}))
+	}
+	fn to_item(&self) -> core::Item {
+		let mut item = core::Item::new("base_game".to_string(), "base_game".to_string());
+		self.merge_into_item(&mut item);
+		item
+	}
+	fn merge_into_item(&self, item: &mut Item) {
+		item.item_meta.insert("player".to_string(), self.player.clone());
+	}
+	fn get_id(&self) -> &str {
+		"base_game"
+	}
 }
