@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::mem::swap;
+use std::rc::Rc;
 
 pub struct Ingame {
 	storage: Storage,
@@ -89,7 +90,33 @@ impl Item {
 	}
 }
 
-pub type Action = Box<Fn(&mut MutIngame)>;
+pub type Action = Box<ActionFn>;
+pub trait ActionFn {
+	fn run(&self, &mut MutIngame);
+	fn clone(&self) -> Box<ActionFn>;
+}
+pub struct ActionClosureWrapper {
+	closure: Rc<Box<Fn(&mut MutIngame)>>
+}
+impl ActionClosureWrapper {
+	pub fn new(closure: Box<Fn(&mut MutIngame)>) -> ActionClosureWrapper {
+		ActionClosureWrapper {
+			closure: Rc::new(closure)
+		}
+	}
+}
+impl ActionFn for ActionClosureWrapper {
+	fn run(&self, ingame: &mut MutIngame) {
+		let closure = &self.closure;
+		closure(ingame)
+	}
+	fn clone(&self) -> Box<ActionFn> {
+		Box::new(ActionClosureWrapper {
+			closure: self.closure.clone()
+		})
+	}
+}
+
 
 pub struct Response {
 	items: HashMap<String, String>
@@ -167,7 +194,7 @@ impl Ingame {
 		{
 			let mut mutable_ingame = MutIngame { ingame: self };
 			for action in actions.actions {
-				action(&mut mutable_ingame);
+				action.run(&mut mutable_ingame);
 			}
 		}
 	}
@@ -261,9 +288,10 @@ pub fn deserialize_hashmap(string: &str) -> HashMap<String, String> {
 #[test]
 fn simple_test() {
 	let mut ingame = Ingame::new();
-	let action: Action = Box::new(|mut mut_ingame| mut_ingame.append_response("out", "test"));
+	let action =
+		ActionClosureWrapper::new(Box::new(|mut mut_ingame| mut_ingame.append_response("out", "test")));
 	assert_eq!("", ingame.get_response("out"));
-	ingame.add_action(action);
+	ingame.add_action(Box::new(action));
 	assert_eq!("", ingame.get_response("out"));
 	ingame.step();
 	assert_eq!("test", ingame.get_response("out"));
