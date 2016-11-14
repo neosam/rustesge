@@ -121,5 +121,3 @@ impl core::Itemizeable for BaseGame {
 		"base_game"
 	}
 }
-
-

@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::mem::swap;
-use std::rc::Rc;
 
 pub struct Ingame {
 	storage: Storage,
@@ -53,25 +52,44 @@ impl Storage {
 }
 
 pub struct Actions {
-	actions: Vec<Action>
+	actions: HashMap<u32, Action>,
+	new_actions: Vec<(u32, Action)>,
+	delete_actions: Vec<u32>,
+	index: u32
 }
 impl Actions {
     fn new() -> Self {
     	Actions {
-    		actions: Vec::new()
+    		actions: HashMap::new(),
+    		new_actions: Vec::new(),
+    		delete_actions: Vec::new(),
+    		index: 0
     	}
-    }
-    fn with_capacity(len: usize) -> Self {
-    	Actions {
-    		actions: Vec::with_capacity(len)
-    	}
-    }
-    fn len(&self) -> usize {
-    	self.actions.len()
     }
     fn add_action(&mut self, action: Action) {
-    	self.actions.push(action)
+    	self.index += 1;
+    	self.new_actions.push((self.index, action));
     }
+    fn apply_actions(&mut self) {
+    	if !self.new_actions.is_empty() {
+    		let mut new_actions: Vec<(u32, Action)> = Vec::new();
+    		swap(&mut new_actions, &mut self.new_actions);
+    		for (i, a) in new_actions {
+    			self.actions.insert(i, a);
+    		}
+    	}
+    	if !self.delete_actions.is_empty() {
+    		let mut delete_actions: Vec<u32> = Vec::new();
+    		swap(&mut delete_actions, &mut self.delete_actions);
+    		for i in delete_actions {
+    			self.actions.remove(&i);
+    		}
+    	}
+    }
+    fn remove_action(&mut self, index: u32) {
+    	self.delete_actions.push(index);
+    }
+
 }
 
 #[derive(Clone, Debug)]
@@ -90,33 +108,7 @@ impl Item {
 	}
 }
 
-pub type Action = Box<ActionFn>;
-pub trait ActionFn {
-	fn run(&self, &mut MutIngame);
-	fn clone(&self) -> Box<ActionFn>;
-}
-pub struct ActionClosureWrapper {
-	closure: Rc<Box<Fn(&mut MutIngame)>>
-}
-impl ActionClosureWrapper {
-	pub fn new(closure: Box<Fn(&mut MutIngame)>) -> ActionClosureWrapper {
-		ActionClosureWrapper {
-			closure: Rc::new(closure)
-		}
-	}
-}
-impl ActionFn for ActionClosureWrapper {
-	fn run(&self, ingame: &mut MutIngame) {
-		let closure = &self.closure;
-		closure(ingame)
-	}
-	fn clone(&self) -> Box<ActionFn> {
-		Box::new(ActionClosureWrapper {
-			closure: self.closure.clone()
-		})
-	}
-}
-
+pub type Action = Box<Fn(&mut MutIngame, u32)>;
 
 pub struct Response {
 	items: HashMap<String, String>
@@ -188,19 +180,26 @@ impl Ingame {
 	}
 
 	pub fn step(&mut self) {
-		let mut actions = Actions::with_capacity(self.actions.len() * 2);
 		self.response.clear();
-		swap(&mut self.actions, &mut actions);		
+		self.actions.apply_actions();
 		{
-			let mut mutable_ingame = MutIngame { ingame: self };
-			for action in actions.actions {
-				action.run(&mut mutable_ingame);
+			let mut actions: HashMap<u32, Action> = HashMap::new();
+			swap(&mut actions, &mut self.actions.actions);
+			{
+				let mut mutable_ingame = MutIngame { ingame: self };
+				for (i, action) in actions.iter() {
+					action(&mut mutable_ingame, *i);
+				}
 			}
+			swap(&mut actions, &mut self.actions.actions);
 		}
 	}
 
 	pub fn add_action(&mut self, action: Action) {
 		self.actions.add_action(action)
+	}
+	pub fn remove_action(&mut self, i: u32) {
+		self.actions.remove_action(i);
 	}
 
 	pub fn get_response(&self, channel: &str) -> &str {
@@ -229,6 +228,9 @@ impl<'a> MutIngame<'a> {
 	pub fn add_action(&mut self, action: Action) {
 		self.ingame.add_action(action)
 	}
+	pub fn remove_action(&mut self, i: u32) {
+		self.ingame.remove_action(i);
+	}	
 
 	pub fn set_response(&mut self, channel: &str, msg: &str) {
 		self.ingame.response.set_response(channel, msg)
@@ -286,15 +288,31 @@ pub fn deserialize_hashmap(string: &str) -> HashMap<String, String> {
 
 
 #[test]
-fn simple_test() {
+fn simple_action_test() {
 	let mut ingame = Ingame::new();
-	let action =
-		ActionClosureWrapper::new(Box::new(|mut mut_ingame| mut_ingame.append_response("out", "test")));
+	let action: Action = Box::new(|mut mut_ingame, _| mut_ingame.append_response("out", "test"));
 	assert_eq!("", ingame.get_response("out"));
-	ingame.add_action(Box::new(action));
+	ingame.add_action(action);
+	assert_eq!("", ingame.get_response("out"));
+	ingame.step();
+	assert_eq!("test", ingame.get_response("out"));
+	ingame.step();
+	assert_eq!("test", ingame.get_response("out"));
+}
+
+#[test]
+fn remove_action_test() {
+	let mut ingame = Ingame::new();
+	let action: Action = Box::new(|mut mut_ingame, i| {
+		mut_ingame.remove_action(i);
+		mut_ingame.append_response("out", "test");
+	});
+	assert_eq!("", ingame.get_response("out"));
+	ingame.add_action(action);
 	assert_eq!("", ingame.get_response("out"));
 	ingame.step();
 	assert_eq!("test", ingame.get_response("out"));
 	ingame.step();
 	assert_eq!("", ingame.get_response("out"));
 }
+
