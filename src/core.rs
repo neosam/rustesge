@@ -55,6 +55,7 @@ pub struct Actions {
 	actions: HashMap<u32, Action>,
 	new_actions: Vec<(u32, Action)>,
 	delete_actions: Vec<u32>,
+	one_time_actions: Vec<Action>,
 	index: u32
 }
 impl Actions {
@@ -63,12 +64,16 @@ impl Actions {
     		actions: HashMap::new(),
     		new_actions: Vec::new(),
     		delete_actions: Vec::new(),
+    		one_time_actions: Vec::new(),
     		index: 0
     	}
     }
     fn add_action(&mut self, action: Action) {
     	self.index += 1;
     	self.new_actions.push((self.index, action));
+    }
+    fn add_one_time_action(&mut self, action: Action) {
+    	self.one_time_actions.push(action);
     }
     fn apply_actions(&mut self) {
     	if !self.new_actions.is_empty() {
@@ -193,10 +198,21 @@ impl Ingame {
 			}
 			swap(&mut actions, &mut self.actions.actions);
 		}
+		{
+			let mut actions: Vec<Action> = Vec::new();
+			swap(&mut actions, &mut self.actions.one_time_actions);
+			for action in actions {
+				let mut mutable_ingame = MutIngame { ingame: self };
+				action(&mut mutable_ingame, 0)
+			}
+		}
 	}
 
 	pub fn add_action(&mut self, action: Action) {
 		self.actions.add_action(action)
+	}
+	pub fn add_one_time_action(&mut self, action: Action) {
+		self.actions.add_one_time_action(action);
 	}
 	pub fn remove_action(&mut self, i: u32) {
 		self.actions.remove_action(i);
@@ -315,4 +331,20 @@ fn remove_action_test() {
 	ingame.step();
 	assert_eq!("", ingame.get_response("out"));
 }
+
+#[test]
+fn one_time_action_test() {
+	let mut ingame = Ingame::new();
+	let action: Action = Box::new(|mut mut_ingame, _| {
+		mut_ingame.append_response("out", "test");
+	});
+	assert_eq!("", ingame.get_response("out"));
+	ingame.add_one_time_action(action);
+	assert_eq!("", ingame.get_response("out"));
+	ingame.step();
+	assert_eq!("test", ingame.get_response("out"));
+	ingame.step();
+	assert_eq!("", ingame.get_response("out"));
+}
+
 
