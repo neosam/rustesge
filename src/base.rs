@@ -121,3 +121,58 @@ impl core::Itemizeable for BaseGame {
 		"base_game"
 	}
 }
+
+pub fn get_player(ingame: &Ingame) -> Option<Box<Actor>> {
+	if let Some(base_game) = ingame.get_item::<BaseGame>("base_game") {
+		if let Some(player) = ingame.get_item::<Actor>(&base_game.player) {
+			Some(player)
+		} else {
+			None
+		}
+	} else {
+		None
+	}
+}
+
+pub fn room_of_player(ingame: &Ingame) -> Option<Box<Room>> {
+	if let Some(player) = get_player(ingame) {
+		if let Some(room) = room_of_actor(ingame, &*player) {
+			Some(room)
+		} else {
+			None
+		}
+	} else {
+		None
+	}
+}
+
+pub fn display_room(ingame: &mut MutIngame, room: Box<Room>) {
+	ingame.append_response("out", "Room: ");
+	ingame.append_response("out", &room.name);
+	ingame.append_response("out", "\n");
+}
+
+pub fn display_player_room(ingame: &mut MutIngame) {
+	if let Some(room) = room_of_player(ingame.ingame) {
+		display_room(ingame, room);
+	}
+}
+
+pub fn gen_display_current_room_action() -> core::Action {
+	Box::new(|ingame, _| display_player_room(ingame))
+}
+
+pub fn gen_move_actor_action(actor_ref: &Actor, direction: String) -> core::Action {
+	let actor = actor_ref.clone();
+	Box::new(move |mut ingame, _| {
+		move_actor(ingame, &actor, &direction).is_ok();
+		()
+	})
+}
+
+pub fn gen_esge_package() -> EsgePackage {
+	EsgePackage {
+		init_action: Box::new(| _, _ | ()),
+		plausability_check: Box::new(| _ | None)
+	}
+}

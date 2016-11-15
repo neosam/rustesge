@@ -3,7 +3,7 @@ use core::Item;
 
 use std::collections::HashMap;
 
-
+#[derive(Clone)]
 pub struct Actor {
 	pub id: String,
 	pub name: String,
