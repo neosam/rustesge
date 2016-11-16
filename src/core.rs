@@ -244,6 +244,9 @@ impl<'a> MutIngame<'a> {
 	pub fn add_action(&mut self, action: Action) {
 		self.ingame.add_action(action)
 	}
+	pub fn add_one_time_action(&mut self, action: Action) {
+		self.ingame.add_one_time_action(action);
+	}	
 	pub fn remove_action(&mut self, i: u32) {
 		self.ingame.remove_action(i);
 	}	

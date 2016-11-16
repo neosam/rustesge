@@ -47,12 +47,16 @@ impl Terminal {
 				let action_option = command_fn(&mut self.ingame, &keywords);
 				if let Some(action) = action_option {
 					self.ingame.add_one_time_action(action);
+					self.ingame.step();
+					print!("{}\n", self.ingame.get_response("out"));
+					let ingame_error = self.ingame.get_response("err");
+					if !ingame_error.is_empty() {
+						print!("Error: {}\n", ingame_error);
+					}
 				}
 			} else {
 				print!("Could not find command '{}'\n", keywords[0].trim());
 			}
-			self.ingame.step();
-			print!("{}", self.ingame.get_response("out"));
 		}
 	}
 

@@ -42,9 +42,10 @@ pub fn move_actor(ingame: &mut MutIngame, actor: &Actor, exit_name: &str) -> Res
 	}
 	let actor_room = actor_room.unwrap();
 	if !actor_room.exits.contains_key(exit_name) {
-		return Err("Exit not in actors room".to_string());
+		return Err(format!("Exit {} not in actors room", exit_name).to_string());
 	}
-	let dest_room: Option<Box<Room>> = ingame.get_item(actor_room.exits.get(&actor.id).unwrap());
+	let dest_room_name = actor_room.exits.get(exit_name).unwrap();
+	let dest_room: Option<Box<Room>> = ingame.get_item(dest_room_name);
 	if dest_room.is_none() {
 		return Err("Dest room key not found in storage".to_string());
 	}
@@ -122,27 +123,24 @@ impl core::Itemizeable for BaseGame {
 	}
 }
 
-pub fn get_player(ingame: &Ingame) -> Option<Box<Actor>> {
+pub fn get_player(ingame: &Ingame) -> Result<Box<Actor>, String> {
 	if let Some(base_game) = ingame.get_item::<BaseGame>("base_game") {
 		if let Some(player) = ingame.get_item::<Actor>(&base_game.player) {
-			Some(player)
+			Ok(player)
 		} else {
-			None
+			Err(format!("Player not found: {}", base_game.player).to_string())
 		}
 	} else {
-		None
+		Err("Base game not found".to_string())
 	}
 }
 
-pub fn room_of_player(ingame: &Ingame) -> Option<Box<Room>> {
-	if let Some(player) = get_player(ingame) {
-		if let Some(room) = room_of_actor(ingame, &*player) {
-			Some(room)
-		} else {
-			None
-		}
+pub fn room_of_player(ingame: &Ingame) -> Result<Box<Room>, String> {
+	let player = try!(get_player(ingame));
+	if let Some(room) = room_of_actor(ingame, &*player) {
+		Ok(room)
 	} else {
-		None
+		Err(format!("Room of player not found: {}", player.id).to_string())
 	}
 }
 
@@ -153,8 +151,9 @@ pub fn display_room(ingame: &mut MutIngame, room: Box<Room>) {
 }
 
 pub fn display_player_room(ingame: &mut MutIngame) {
-	if let Some(room) = room_of_player(ingame.ingame) {
-		display_room(ingame, room);
+	match room_of_player(ingame.ingame) {
+		Ok(room) => display_room(ingame, room),
+		Err(msg) => ingame.append_response("err", &msg)
 	}
 }
 
@@ -167,6 +166,20 @@ pub fn gen_move_actor_action(actor_ref: &Actor, direction: String) -> core::Acti
 	Box::new(move |mut ingame, _| {
 		move_actor(ingame, &actor, &direction).is_ok();
 		()
+	})
+}
+
+pub fn gen_move_player_action(direction: String) -> core::Action {
+	Box::new(move |mut ingame, _| {
+		match get_player(ingame.ingame) {
+			Ok(player) => { 
+				match move_actor(ingame, &player, &direction) {
+					Ok(_) => (),
+					Err(msg) => ingame.append_response("err", &msg)
+				}
+		    },
+			Err(msg) => ingame.append_response("err", &msg)
+		}
 	})
 }
 
