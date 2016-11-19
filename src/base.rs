@@ -8,7 +8,7 @@ use std::result::Result;
 
 pub fn room_of_actor(ingame: &Ingame, actor: &Actor) -> Option<Box<Room>> {
 	let id = &actor.id;
-	let rooms: Vec<Box<Room>> = ingame.all_of_type();
+	let rooms = ingame.all_of_type::<Room>();
 	for room in rooms {
 		if room.actors.contains(id) {
 			return Some(room)

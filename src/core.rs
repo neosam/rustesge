@@ -71,13 +71,12 @@ impl Storage {
 	}
 
 	/// Return a list of all item which can be converted to type T.
-	pub fn all_of_type<T>(&self) -> Vec<Box<T>> 
+	pub fn all_of_type<'a, T>(&'a self) -> Box<Iterator<Item=Box<T>> + 'a>
 			where T: Itemizeable {
-		self.items.values()
+		Box::new(self.items.values()
 			.map(|x| T::from_item(x))
 			.filter(|x| x.is_some())
-			.map(|x| x.unwrap())
-			.collect()
+			.map(|x| x.unwrap()))
 	}
 }
 
@@ -292,7 +291,7 @@ impl Ingame {
 	}
 
 	/// Get all items which can be converted to T.
-	pub fn all_of_type<T>(&self) -> Vec<Box<T>> 
+	pub fn all_of_type<'a, T>(&'a self) -> Box<Iterator<Item=Box<T>> + 'a>
 			where T: Itemizeable {
 		self.storage.all_of_type()
 	}
