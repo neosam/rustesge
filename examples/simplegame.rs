@@ -60,6 +60,17 @@ pub fn main() {
 			Some(base::gen_display_current_room_action())
 		})
 	};
+	let store_cmd = Command {
+		keyword: "store".to_string(),
+		action_fn: Box::new(| _, _ | {
+			Some(Box::new(| mut ingame, _ | {
+				match ingame.ingame.serialize() {
+					Ok(res) => ingame.append_response("out", &res),
+					Err(err) => ingame.append_response("err", &format!("{:?}", err))
+				}
+			}))
+		})
+	};
 	let go_cmd = Command {
 		keyword: "go".to_string(),
 		action_fn: Box::new(| _, keywords | {
@@ -87,6 +98,7 @@ pub fn main() {
 			terminal.add_command(look_cmd);
 			terminal.add_command(go_cmd);
 			terminal.add_command(error_cmd);
+			terminal.add_command(store_cmd);
 			print!("Running terminal\n");
 			terminal.run();
 		},

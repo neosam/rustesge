@@ -8,6 +8,8 @@
 #![warn(missing_docs)]
 use std::collections::HashMap;
 use std::mem::swap;
+use rustc_serialize::json;
+use rustc_serialize::json::{EncoderError, DecoderError};
 
 /// Contains the core game state with immutable storage.
 ///
@@ -30,6 +32,7 @@ pub struct MutIngame<'a> {
 }
 
 /// Contains all items required for a game (Room, Actor). 
+#[derive(Debug, RustcEncodable, RustcDecodable)]
 pub struct Storage {
 	items: HashMap<String, Item>
 }
@@ -128,7 +131,7 @@ impl Actions {
 }
 
 /// Any item in a game (Room, Actor, Money, the game state)
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, RustcEncodable, RustcDecodable)]
 pub struct Item {
 	/// ID of the type ("room", "actor")
 	pub item_type: String,
@@ -295,6 +298,18 @@ impl Ingame {
 			where T: Itemizeable {
 		self.storage.all_of_type()
 	}
+
+
+	/// Transform storage to JSON string.
+	pub fn serialize(&self) -> Result<String, EncoderError> {
+		json::encode(&self.storage)
+	}
+
+	/// Creates an ingame with the storage defined in the JSON string.
+	pub fn from_json(msg: &str) -> Result<Self, DecoderError> {
+		let storage: Storage = try!(json::decode(msg));
+		Ok(Ingame::with_storage(storage))
+	}
 }
 
 impl<'a> MutIngame<'a> {
@@ -356,35 +371,12 @@ pub fn deserialize_vec(string: &str) -> Vec<String> {
 
 /// Turn a HashMap of Strings into a String with semicolon as separator.
 pub fn serialize_hashmap(map: &HashMap<String, String>) -> String {
-	let mut res = String::new();
-	let mut first = true;
-	for (key, value) in map {
-		if !first {
-			res.push_str(";");
-			first = false;
-		}
-		res.push_str(key);
-		res.push_str(";");
-		res.push_str(value);
-	}
-	res
+	json::encode(map).unwrap()
 }
 
 /// Turn a String separated by semicolon to a HashMap of Strings.
 pub fn deserialize_hashmap(string: &str) -> HashMap<String, String> {
-	let mut split = string.split(";");
-	let mut res = HashMap::new();
-	loop {
-		let key_option = split.next();
-		let value_option = split.next();
-		if key_option.is_none() || value_option.is_none() {
-			break;
-		}
-		let key = key_option.unwrap().to_string();
-		let value = value_option.unwrap().to_string();
-		res.insert(key, value);
-	}
-	res
+	json::decode(string).unwrap()
 }
 
 

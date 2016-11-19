@@ -1,3 +1,4 @@
+extern crate rustc_serialize;
 pub mod core;
 pub mod room;
 pub mod actor;
