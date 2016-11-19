@@ -34,12 +34,14 @@ pub struct MutIngame<'a> {
 /// Contains all items required for a game (Room, Actor). 
 #[derive(Debug, RustcEncodable, RustcDecodable)]
 pub struct Storage {
+	id: String,
 	items: HashMap<String, Item>
 }
 impl Storage {
 	/// Generate a new and empty 'Storage'.
-	pub fn new() -> Self {
+	pub fn new(id: String) -> Self {
 		Storage {
+			id: id,
 			items: HashMap::new()
 		}
 	}
@@ -225,9 +227,9 @@ impl Itemizeable for Item {
 
 impl Ingame {
 	/// Create new Ingame without items and actions.
-	pub fn new() -> Self {
+	pub fn new(id: String) -> Self {
 		Ingame {
-			storage: Storage::new(),
+			storage: Storage::new(id),
 			actions: Actions::new(),
 			response: Response::new(),
 		}
@@ -380,9 +382,50 @@ pub fn deserialize_hashmap(string: &str) -> HashMap<String, String> {
 }
 
 
+impl Itemizeable for Storage {
+	fn from_item(item: &Item) -> Option<Box<Self>> {
+		if &item.item_type != "storage" {
+			None
+		} else {
+			if let Some(item_map) = item.item_meta.get("items") {
+				if let Ok(items) = json::decode(&item_map) {
+					let storage = Storage {
+						id: item.item_id.clone(),
+						items: items
+					};
+					Some(Box::new(storage))
+				} else {
+					None
+				}
+			} else {
+				None
+			}
+		}
+	}
+
+	fn to_item(&self) -> Item {
+		let mut items = Item {
+			item_id: self.id.clone(),
+			item_type: "storage".to_string(),
+			item_meta: HashMap::new()
+		};
+		self.merge_into_item(&mut items);
+		items
+	}
+
+	fn merge_into_item(&self, item: &mut Item) {
+		let items = json::encode(&self.items).unwrap();
+		item.item_meta.insert("items".to_string(), items);
+	}
+
+	fn get_id(&self) -> &str {
+		&self.id
+	}
+}
+
 #[test]
 fn simple_action_test() {
-	let mut ingame = Ingame::new();
+	let mut ingame = Ingame::new("storage");
 	let action: Action = Box::new(|mut mut_ingame, _| mut_ingame.append_response("out", "test"));
 	assert_eq!("", ingame.get_response("out"));
 	ingame.add_action(action);
@@ -395,7 +438,7 @@ fn simple_action_test() {
 
 #[test]
 fn remove_action_test() {
-	let mut ingame = Ingame::new();
+	let mut ingame = Ingame::new("storage");
 	let action: Action = Box::new(|mut mut_ingame, i| {
 		mut_ingame.remove_action(i);
 		mut_ingame.append_response("out", "test");
@@ -411,7 +454,7 @@ fn remove_action_test() {
 
 #[test]
 fn one_time_action_test() {
-	let mut ingame = Ingame::new();
+	let mut ingame = Ingame::new("storage");
 	let action: Action = Box::new(|mut mut_ingame, _| {
 		mut_ingame.append_response("out", "test");
 	});
