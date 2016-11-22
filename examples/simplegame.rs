@@ -37,7 +37,7 @@ pub fn main() {
 	let state = BaseGame {
 		player: "lalala".to_string()
 	};
-	let mut storage = Storage::new();
+	let mut storage = Storage::new("storage");
 	storage.insert(Box::new(room1));
 	storage.insert(Box::new(room2));
 	storage.insert(Box::new(lalala));

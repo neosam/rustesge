@@ -39,9 +39,11 @@ pub struct Storage {
 }
 impl Storage {
 	/// Generate a new and empty 'Storage'.
-	pub fn new(id: String) -> Self {
+	pub fn new<S>(id: S) -> Self 
+				where String: From<S>{
+		let id_str = String::from(id);
 		Storage {
-			id: id,
+			id: id_str,
 			items: HashMap::new()
 		}
 	}
@@ -227,9 +229,11 @@ impl Itemizeable for Item {
 
 impl Ingame {
 	/// Create new Ingame without items and actions.
-	pub fn new(id: String) -> Self {
+	pub fn new<S>(id: S) -> Self 
+				where String: From<S>{
+		let id_str = String::from(id);
 		Ingame {
-			storage: Storage::new(id),
+			storage: Storage::new::<String>(id_str),
 			actions: Actions::new(),
 			response: Response::new(),
 		}

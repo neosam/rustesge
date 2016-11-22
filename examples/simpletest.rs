@@ -4,7 +4,7 @@ use rustesge::terminal::Terminal;
 use rustesge::terminal::Command;
 
 pub fn main() {
-	let ingame = Ingame::new();
+	let ingame = Ingame::new("storage".to_string());
 	let mut terminal = Terminal::new(ingame);
 	let command = Command {
 		keyword: "quit".to_string(),
