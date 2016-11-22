@@ -8,6 +8,7 @@ use rustesge::actor::Actor;
 use rustesge::base::BaseGame;
 use rustesge::base;
 use std::collections::HashMap;
+use rustesge::genesis;
 
 pub fn main() {
 	let mut room1 = Room {
@@ -99,6 +100,8 @@ pub fn main() {
 			terminal.add_command(go_cmd);
 			terminal.add_command(error_cmd);
 			terminal.add_command(store_cmd);
+			terminal.add_command(genesis::gen_exit_cmd("add_exit"));
+			terminal.add_command(genesis::gen_rename_room_cmd("rename_room"));
 			print!("Running terminal\n");
 			terminal.run();
 		},

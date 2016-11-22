@@ -7,6 +7,7 @@ use core::deserialize_vec;
 
 use std::collections::HashMap;
 
+#[derive(Clone, Debug)]
 pub struct Room {
 	pub id: String,
 	pub name: String,
