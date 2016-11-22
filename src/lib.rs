@@ -4,6 +4,7 @@ pub mod room;
 pub mod actor;
 pub mod base;
 pub mod terminal;
+pub mod genesis;
 
 #[cfg(test)]
 mod tests {

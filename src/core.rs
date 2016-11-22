@@ -61,6 +61,12 @@ impl Storage {
 		}
 	}
 
+	/// Consumes and inserts, use for construction
+	pub fn with_item<T: Itemizeable>(mut self, item: T) -> Self {
+		self.insert(Box::new(item));
+		self
+	}
+
 	/// Get in item from the storage.
 	///
 	/// # Errors

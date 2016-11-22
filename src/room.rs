@@ -16,6 +16,28 @@ pub struct Room {
 	pub exits: HashMap<String, String>
 }
 
+impl Room {
+	pub fn new<S>(id: S) -> Self 
+				where String: From<S> {
+		Room {
+			id: String::from(id),
+			name: "".to_string(),
+			description: "".to_string(),
+			items: Vec::new(),
+			actors: Vec::new(),
+			exits: HashMap::new()
+		}
+	}
+	pub fn with_name<S: Into<String>>(mut self, name: S) -> Self {
+		self.name = name.into();
+		self
+	}
+	pub fn with_description<S: Into<String>>(mut self, description: S) -> Self {
+		self.description = description.into();
+		self
+	}
+}
+
 impl core::Itemizeable for Room {
 	fn from_item(item: &Item) -> Option<Box<Room>> {
 		if item.item_type != "room" {
