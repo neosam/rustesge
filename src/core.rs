@@ -318,9 +318,10 @@ impl Ingame {
 	}
 
 	/// Creates an ingame with the storage defined in the JSON string.
-	pub fn from_json(msg: &str) -> Result<Self, DecoderError> {
+	pub fn from_json(&mut self, msg: &str) -> Result<(), DecoderError> {
 		let storage: Storage = try!(json::decode(msg));
-		Ok(Ingame::with_storage(storage))
+		self.storage = storage;
+		Ok(())
 	}
 }
 

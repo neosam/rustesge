@@ -3,6 +3,8 @@ use core::Action;
 use std::io;
 use std::collections::HashMap;
 use std::io::Write;
+use std::error::Error;
+use std::fmt;
 
 pub struct Terminal {
 	pub ingame: Ingame,
@@ -12,7 +14,30 @@ pub struct Terminal {
 
 pub struct Command {
 	pub keyword: String,
-	pub action_fn: Box<Fn(&Ingame, &[&str]) -> Option<Action>>
+	pub action_fn: Box<Fn(&mut Ingame, &[&str]) -> Result<Action, Box<Error>>>
+}
+
+/// An error which contains an msg
+#[derive(Debug)]
+pub struct MsgError {
+	msg: String
+}
+
+impl fmt::Display for MsgError {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "{}", self.msg)
+	}
+}
+impl Error for MsgError {
+	fn description(&self) -> &str {
+		&self.msg
+	}
+}
+
+impl MsgError {
+	pub fn new(msg: String) -> Self {
+		MsgError { msg: msg }
+	}
 }
 
 
@@ -45,14 +70,17 @@ impl Terminal {
 			if let Some(command) = command_option {
 				let command_fn = &command.action_fn;
 				let action_option = command_fn(&mut self.ingame, &keywords);
-				if let Some(action) = action_option {
-					self.ingame.add_one_time_action(action);
-					self.ingame.step();
-					print!("{}\n", self.ingame.get_response("out"));
-					let ingame_error = self.ingame.get_response("err");
-					if !ingame_error.is_empty() {
-						print!("Error: {}\n", ingame_error);
-					}
+				match action_option {
+					Ok(action) =>  {
+						self.ingame.add_one_time_action(action);
+						self.ingame.step();
+						print!("{}\n", self.ingame.get_response("out"));
+						let ingame_error = self.ingame.get_response("err");
+						if !ingame_error.is_empty() {
+							print!("Error: {}\n", ingame_error);
+						}
+					},
+					Err(err) => print!("{}", err)
 				}
 			} else {
 				print!("Could not find command '{}'\n", keywords[0].trim());

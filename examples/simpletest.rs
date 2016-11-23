@@ -1,6 +1,6 @@
 extern crate rustesge;
 use rustesge::core::Ingame;
-use rustesge::terminal::Terminal;
+use rustesge::terminal::{Terminal};
 use rustesge::terminal::Command;
 
 pub fn main() {
@@ -9,7 +9,7 @@ pub fn main() {
 	let command = Command {
 		keyword: "quit".to_string(),
 		action_fn: Box::new(| _, _ | {
-			Some(Box::new(| mut ingame, _ | {
+			Ok(Box::new(| mut ingame, _ | {
 				ingame.append_response("done", "true");
 			}))
 		})
@@ -18,7 +18,7 @@ pub fn main() {
 		keyword: "echo".to_string(),
 		action_fn: Box::new(| _, keywords | {
 			let keywords = keywords.join(" ").clone();
-			Some(Box::new(move | mut ingame, _ | { 
+			Ok(Box::new(move | mut ingame, _ | { 
 				ingame.append_response("out", &keywords);
 			}))
 		})

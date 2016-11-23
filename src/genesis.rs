@@ -1,11 +1,16 @@
 //! Create a world inside another world
 
 
-use core::{Storage, Action};
+use core::{Storage, Action, Ingame};
 use room::Room;
 use actor::Actor;
 use base::{BaseGame, room_of_player};
-use terminal::{Command, multiline_input};
+use terminal::{Command, multiline_input, MsgError};
+use std::io;
+use std::io::{Write, Read};
+use std::error::Error;
+use std::fs;
+
 
 /// Get ste minimal storage required
 pub fn initial_genesis(player_name: &str) -> Storage {
@@ -66,9 +71,9 @@ pub fn gen_exit_cmd<S: Into<String>>(keyword: S) -> Command{
 		keyword: keyword.into(),
 		action_fn: Box::new(|_, keywords | {
 			if keywords.len() < 3 {
-				return None
+				Err(MsgError::new("Expected two arguments".to_string()))?;
 			}
-			Some(gen_exit_action(keywords[1].trim(), keywords[2].trim()))
+			Ok(gen_exit_action(keywords[1].trim(), keywords[2].trim()))
 		})
 	}
 }
@@ -106,9 +111,9 @@ pub fn gen_rename_room_cmd<S: Into<String>>(keyword: S) -> Command{
 		keyword: keyword.into(),
 		action_fn: Box::new(|_, keywords | {
 			if keywords.len() < 2 {
-				return None
+				Err(MsgError::new("Expected one argument".to_string()))?;
 			}
-			Some(gen_rename_room_action(keywords[1].trim()))
+			Ok(gen_rename_room_action(keywords[1].trim()))
 		})
 	}
 }
@@ -118,12 +123,46 @@ pub fn gen_redescribe_room_cmd<S: Into<String>>(keyword: S) -> Command{
 		keyword: keyword.into(),
 		action_fn: Box::new(|_, _ | {
 			print!("Write a multiline text, terminate with END\n");
-			let description = multiline_input("END");
-			match description {
-				Ok(description) => Some(gen_redescribe_room_action(description)),
-				Err(err) => { print!("{:?}\n", err); None }
-			}
+			let description = multiline_input("END")?;
+			Ok(gen_redescribe_room_action(description))
 		})
 	}
 }
 
+pub fn save_world(ingame: &Ingame, path: String) -> Result<(), Box<Error>> {
+	let export_str: String = ingame.serialize()?;
+	let mut out_file = fs::File::create(&path)?;
+	write!(out_file, "{}", export_str)?;
+
+	Ok(())
+}
+pub fn load_world(ingame: &mut Ingame, path: String) -> Result<(), Box<Error>> {
+	let mut in_file = fs::File::open(&path)?;
+	let mut import_str = String::new();
+	in_file.read_to_string(&mut import_str)?;
+	ingame.from_json(&import_str)?;
+	Ok(())
+}
+
+pub fn save_world_cmd(keyword: String) -> Command {
+	Command {
+		keyword: keyword,
+		action_fn: Box::new(|ingame, _ | {
+			let mut name = String::new();
+			io::stdin().read_line(&mut name)?;
+			save_world(ingame, name.trim().to_string())?;
+			Err(MsgError::new("".to_string()))?
+		})
+	}
+}
+pub fn load_world_cmd(keyword: String) -> Command {
+	Command {
+		keyword: keyword,
+		action_fn: Box::new(|mut ingame, _ | {
+			let mut name = String::new();
+			io::stdin().read_line(&mut name)?;
+			load_world(ingame, name.trim().to_string())?;
+			Err(MsgError::new("".to_string()))?
+		})
+	}
+}

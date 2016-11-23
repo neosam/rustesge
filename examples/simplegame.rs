@@ -1,7 +1,6 @@
 extern crate rustesge;
-use rustesge::core::Ingame;
 use rustesge::core::Storage;
-use rustesge::terminal::Terminal;
+use rustesge::terminal::{Terminal, MsgError};
 use rustesge::terminal::Command;
 use rustesge::room::Room;
 use rustesge::actor::Actor;
@@ -51,7 +50,7 @@ pub fn main() {
 	let quit_cmd = Command {
 		keyword: "quit".to_string(),
 		action_fn: Box::new(| _, _ | {
-			Some(Box::new(| mut ingame, _ | {
+			Ok(Box::new(| mut ingame, _ | {
 				ingame.append_response("done", "true");
 			}))
 		})
@@ -59,13 +58,13 @@ pub fn main() {
 	let look_cmd = Command {
 		keyword: "look".to_string(),
 		action_fn: Box::new(| _, _ | {
-			Some(base::gen_display_current_room_action())
+			Ok(base::gen_display_current_room_action())
 		})
 	};
 	let store_cmd = Command {
 		keyword: "store".to_string(),
 		action_fn: Box::new(| _, _ | {
-			Some(Box::new(| mut ingame, _ | {
+			Ok(Box::new(| mut ingame, _ | {
 				match ingame.ingame.serialize() {
 					Ok(res) => ingame.append_response("out", &res),
 					Err(err) => ingame.append_response("err", &format!("{:?}", err))
@@ -77,17 +76,16 @@ pub fn main() {
 		keyword: "go".to_string(),
 		action_fn: Box::new(| _, keywords | {
 			if keywords.len() <= 1 {
-				print!("Which direction?\n");
-				None
+				Err(MsgError::new("Which direction?\n".to_string()))?
 			} else {
-				Some(base::gen_move_player_action(keywords[1].trim().to_string()))
+				Ok(base::gen_move_player_action(keywords[1].trim().to_string()))
 			}
 		})
 	};
 	let error_cmd = Command {
 		keyword: "err".to_string(),
 		action_fn: Box::new(| _, _ | {
-			Some(Box::new(| mut ingame, _ | {
+			Ok(Box::new(| mut ingame, _ | {
 				ingame.append_response("err", "Test\n");
 			}))
 		})
@@ -104,6 +102,8 @@ pub fn main() {
 			terminal.add_command(genesis::gen_exit_cmd("add_exit"));
 			terminal.add_command(genesis::gen_rename_room_cmd("rename_room"));
 			terminal.add_command(genesis::gen_redescribe_room_cmd("redescribe_room"));
+			terminal.add_command(genesis::save_world_cmd("save".to_string()));
+			terminal.add_command(genesis::load_world_cmd("load".to_string()));
 			print!("Running terminal\n");
 			terminal.run();
 		},
