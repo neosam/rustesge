@@ -148,6 +148,17 @@ pub fn display_room(ingame: &mut MutIngame, room: Box<Room>) {
 	ingame.append_response("out", "Room: ");
 	ingame.append_response("out", &room.name);
 	ingame.append_response("out", "\n");
+	ingame.append_response("out", &room.description);
+	ingame.append_response("out", "\n");
+	if !room.exits.is_empty() {
+		ingame.append_response("out", "Directions: ");
+		let keys = room.exits.keys();
+		for key in keys {
+			ingame.append_response("out", key);
+			ingame.append_response("out", " ");
+		}
+		ingame.append_response("out", "\n");
+	}
 }
 
 pub fn display_player_room(ingame: &mut MutIngame) {

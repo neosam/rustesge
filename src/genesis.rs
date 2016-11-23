@@ -5,11 +5,10 @@ use core::{Storage, Action};
 use room::Room;
 use actor::Actor;
 use base::{BaseGame, room_of_player};
-use terminal::Command;
+use terminal::{Command, multiline_input};
 
 /// Get ste minimal storage required
-pub fn initial_genesis<S, O>(player_name: S) -> Storage 
-				where S: Into<String>{
+pub fn initial_genesis(player_name: &str) -> Storage {
 	let player = Actor {
 		id: "player-actor".to_string(),
 		name: player_name.into(),
@@ -18,8 +17,9 @@ pub fn initial_genesis<S, O>(player_name: S) -> Storage
 	let base_game = BaseGame {
 		player: "player-actor".to_string()
 	};
-	let room = Room::new("genesis-room")
+	let mut room = Room::new("genesis-room")
 				.with_name("Genesis");
+	room.actors.push("player-actor".to_string());
 	Storage::new("genesis-stor")
 		.with_item(player)
 		.with_item(base_game)
@@ -87,7 +87,20 @@ pub fn gen_rename_room_action<S: Into<String>>(name: S) -> Action {
 		ingame.insert_item(player_room);
 	})
 }
-
+pub fn gen_redescribe_room_action<S: Into<String>>(name: S) -> Action {
+	let name: String = name.into();
+	Box::new(move | mut ingame, _ | {
+		let mut player_room = match room_of_player(ingame.ingame) {
+			Ok(room) => room,
+			Err(msg) => { 
+				ingame.append_response("err", &msg); 
+				return
+			}
+		};
+		player_room.description = name.clone();
+		ingame.insert_item(player_room);
+	})
+}
 pub fn gen_rename_room_cmd<S: Into<String>>(keyword: S) -> Command{
 	Command {
 		keyword: keyword.into(),
@@ -99,3 +112,18 @@ pub fn gen_rename_room_cmd<S: Into<String>>(keyword: S) -> Command{
 		})
 	}
 }
+
+pub fn gen_redescribe_room_cmd<S: Into<String>>(keyword: S) -> Command{
+	Command {
+		keyword: keyword.into(),
+		action_fn: Box::new(|_, _ | {
+			print!("Write a multiline text, terminate with END\n");
+			let description = multiline_input("END");
+			match description {
+				Ok(description) => Some(gen_redescribe_room_action(description)),
+				Err(err) => { print!("{:?}\n", err); None }
+			}
+		})
+	}
+}
+

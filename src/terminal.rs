@@ -64,3 +64,17 @@ impl Terminal {
 		self.commands.insert(command.keyword.clone(), command);
 	}
 }
+
+pub fn multiline_input<S: Into<String>>(term: S) -> Result<String, io::Error> {
+	let term = term.into();
+	let mut res = String::new();
+	let mut input = String::new();
+	io::stdin().read_line(&mut input)?;
+	while input.trim() != term.trim() {
+		print!("{:?}, {:?}\n", input, term);
+		res.push_str(&input);
+		input.clear();
+		io::stdin().read_line(&mut input)?;
+	}
+	Ok(res.trim().to_string())
+}

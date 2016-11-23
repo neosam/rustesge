@@ -43,6 +43,7 @@ pub fn main() {
 	storage.insert(Box::new(room2));
 	storage.insert(Box::new(lalala));
 	storage.insert(Box::new(state));
+	storage = genesis::initial_genesis("God");
 	let base_package = base::gen_esge_package();
 	let packages = vec![base_package];
 
@@ -102,6 +103,7 @@ pub fn main() {
 			terminal.add_command(store_cmd);
 			terminal.add_command(genesis::gen_exit_cmd("add_exit"));
 			terminal.add_command(genesis::gen_rename_room_cmd("rename_room"));
+			terminal.add_command(genesis::gen_redescribe_room_cmd("redescribe_room"));
 			print!("Running terminal\n");
 			terminal.run();
 		},
