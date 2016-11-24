@@ -1,6 +1,6 @@
+#![warn(missing_docs)]
+
 //! Create a world inside another world
-
-
 use core::{Storage, Action, Ingame, GameError};
 use room::Room;
 use actor::Actor;
@@ -50,6 +50,9 @@ pub fn gen_add_room_action<S, O, O2>(id: S, name: Option<String>,
   	})
 }
 
+/// Create an action which creates a new exit.
+///
+/// It also creates a new room if the room doesn't exist.
 pub fn gen_exit_action<S: Into<String>>(exit_name: S, room_id: S) -> Action {
 	let exit_name: String = exit_name.into();
 	let room_id: String = room_id.into();
@@ -64,6 +67,7 @@ pub fn gen_exit_action<S: Into<String>>(exit_name: S, room_id: S) -> Action {
 	})
 }
 
+/// Command which generates an exit.
 pub fn gen_exit_cmd<S: Into<String>>(keyword: S) -> Command{
 	Command {
 		keyword: keyword.into(),
@@ -76,6 +80,7 @@ pub fn gen_exit_cmd<S: Into<String>>(keyword: S) -> Command{
 	}
 }
 
+/// Action to rename a room.
 pub fn gen_rename_room_action<S: Into<String>>(name: S) -> Action {
 	let name: String = name.into();
 	Box::new(move | mut ingame, _ | {
@@ -85,6 +90,8 @@ pub fn gen_rename_room_action<S: Into<String>>(name: S) -> Action {
 		Ok(())
 	})
 }
+
+/// Action to change the description of a room.
 pub fn gen_redescribe_room_action<S: Into<String>>(name: S) -> Action {
 	let name: String = name.into();
 	Box::new(move | mut ingame, _ | {
@@ -94,6 +101,8 @@ pub fn gen_redescribe_room_action<S: Into<String>>(name: S) -> Action {
 		Ok(())
 	})
 }
+
+/// Command to change the description of a room.
 pub fn gen_rename_room_cmd<S: Into<String>>(keyword: S) -> Command{
 	Command {
 		keyword: keyword.into(),
@@ -106,6 +115,7 @@ pub fn gen_rename_room_cmd<S: Into<String>>(keyword: S) -> Command{
 	}
 }
 
+/// Command to change the description of the current room.
 pub fn gen_redescribe_room_cmd<S: Into<String>>(keyword: S) -> Command{
 	Command {
 		keyword: keyword.into(),
@@ -117,6 +127,7 @@ pub fn gen_redescribe_room_cmd<S: Into<String>>(keyword: S) -> Command{
 	}
 }
 
+/// Save the storage to a file at the given path.
 pub fn save_world(ingame: &Ingame, path: String) -> Result<(), Box<Error>> {
 	let export_str: String = ingame.serialize()?;
 	let mut out_file = fs::File::create(&path)?;
@@ -124,6 +135,8 @@ pub fn save_world(ingame: &Ingame, path: String) -> Result<(), Box<Error>> {
 
 	Ok(())
 }
+
+/// Load the storage from the given path.
 pub fn load_world(ingame: &mut Ingame, path: String) -> Result<(), Box<Error>> {
 	let mut in_file = fs::File::open(&path)?;
 	let mut import_str = String::new();
@@ -132,6 +145,7 @@ pub fn load_world(ingame: &mut Ingame, path: String) -> Result<(), Box<Error>> {
 	Ok(())
 }
 
+/// Command to save the storage.
 pub fn save_world_cmd(keyword: String) -> Command {
 	Command {
 		keyword: keyword,
@@ -143,6 +157,8 @@ pub fn save_world_cmd(keyword: String) -> Command {
 		})
 	}
 }
+
+/// Command to load the storage.
 pub fn load_world_cmd(keyword: String) -> Command {
 	Command {
 		keyword: keyword,
@@ -175,6 +191,7 @@ pub fn empty_world(player_name: &str, world_name: &str) -> Box<Storage> {
 		.with_item(room))
 }
 
+/// Create a new empty world and puts it into the player's room.
 pub fn gen_empty_world_cmd(keyword: String) -> Command {
 		Command {
 		keyword: keyword,
