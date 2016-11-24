@@ -4,7 +4,7 @@
 use core::{Storage, Action, Ingame, GameError};
 use room::Room;
 use actor::Actor;
-use base::{BaseGame, room_of_player, insert_item_in_player_room};
+use base::{BaseGame};
 use terminal::{Command, multiline_input};
 use std::io;
 use std::io::{Write, Read};
@@ -57,7 +57,7 @@ pub fn gen_exit_action<S: Into<String>>(exit_name: S, room_id: S) -> Action {
 	let exit_name: String = exit_name.into();
 	let room_id: String = room_id.into();
 	Box::new(move |mut ingame, _| {
-		let mut player_room = room_of_player(ingame.ingame)?;
+		let mut player_room = ingame.ingame.room_of_player()?;
 		if ingame.get_item::<Room>(&room_id).is_none() {
 			ingame.insert_item(Box::new(Room::new(room_id.clone())));
 		}
@@ -84,7 +84,7 @@ pub fn gen_exit_cmd<S: Into<String>>(keyword: S) -> Command{
 pub fn gen_rename_room_action<S: Into<String>>(name: S) -> Action {
 	let name: String = name.into();
 	Box::new(move | mut ingame, _ | {
-		let mut player_room = room_of_player(ingame.ingame)?;
+		let mut player_room = ingame.ingame.room_of_player()?;
 		player_room.name = name.clone();
 		ingame.insert_item(player_room);
 		Ok(())
@@ -95,7 +95,7 @@ pub fn gen_rename_room_action<S: Into<String>>(name: S) -> Action {
 pub fn gen_redescribe_room_action<S: Into<String>>(name: S) -> Action {
 	let name: String = name.into();
 	Box::new(move | mut ingame, _ | {
-		let mut player_room = room_of_player(ingame.ingame)?;
+		let mut player_room = ingame.ingame.room_of_player()?;
 		player_room.description = name.clone();
 		ingame.insert_item(player_room);
 		Ok(())
@@ -204,7 +204,7 @@ pub fn gen_empty_world_cmd(keyword: String) -> Command {
 			io::stdin().read_line(&mut world_name)?;
 			Ok(Box::new(move |mut ingame, _ | {
 				let world = empty_world(&player_name, &world_name);
-				insert_item_in_player_room(ingame, world)
+				ingame.insert_item_in_player_room(world)
 			}))
 		})
 	}

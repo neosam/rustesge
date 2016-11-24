@@ -1,5 +1,5 @@
 extern crate rustesge;
-use rustesge::core::{Storage, gerr};
+use rustesge::core::{Ingame, Storage, gerr};
 use rustesge::terminal::{Terminal};
 use rustesge::terminal::Command;
 use rustesge::room::Room;
@@ -91,7 +91,7 @@ pub fn main() {
 		})
 	};
 
-	match base::init_packages(storage, packages) {
+	match Ingame::init_packages(storage, packages) {
 		Ok(ingame) => {
 			let mut terminal = Terminal::new(ingame);
 			terminal.add_command(quit_cmd);
