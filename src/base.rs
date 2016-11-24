@@ -66,26 +66,26 @@ pub fn move_actor(ingame: &mut MutIngame,
 }
 
 /// Get a tuple of exit names and the rooms behind them. 
-pub fn exits_in_room(ingame: &Ingame, 
-					 room: &Room) -> Vec<(String, Box<Room>)> {
-	// TODO: Return iterator.
-	room.exits.iter()
-		.map(|(label, room_id)| (label.to_string(), ingame.get_item(room_id)))
+pub fn exits_in_room<'a>(ingame: &'a Ingame, 
+					     room: &'a Room) 
+							-> Box<Iterator<Item=(String, Box<Room>)> + 'a> {
+	Box::new(room.exits.iter()
+		.map(move|(label, room_id)| (label.to_string(), ingame.get_item(room_id)))
 		.filter(| &(_, ref room_option) | room_option.is_some())
 		.map(| (label, room_option) | (label, room_option.unwrap()))
-		.collect()
+	)
 }
 
 /// Git all items from a room.
 ///
 /// Translates the IDs to the Box.
-pub fn items_in_room(ingame: &Ingame, room: &Room) -> Vec<Box<Item>> {
-	// TODO: Return iterator.
-	room.items.iter()
-		.map(|x| ingame.get_item(x))
+pub fn items_in_room<'a>(ingame: &'a Ingame, 
+					 room: &'a Room) -> Box<Iterator<Item=Box<Item>> + 'a> {
+	Box::new(room.items.iter()
+		.map(move|x| ingame.get_item(x))
 		.filter(|x| x.is_some())
 		.map(|x| x.unwrap())
-		.collect()
+	)
 }
 
 /// Get all actors from a room.
