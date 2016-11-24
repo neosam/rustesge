@@ -50,7 +50,8 @@ pub fn move_actor(ingame: &mut MutIngame, actor: &Actor, exit_name: &str) -> Res
 		return Err("Dest room key not found in storage".to_string());
 	}
 	let dest_room = dest_room.unwrap();
-	warp_actor(ingame, actor, dest_room);
+	warp_actor(ingame, actor, dest_room.clone());
+	display_room(ingame, dest_room);
 	Ok(())
 }
 
