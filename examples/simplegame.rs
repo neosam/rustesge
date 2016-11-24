@@ -1,6 +1,6 @@
 extern crate rustesge;
-use rustesge::core::Storage;
-use rustesge::terminal::{Terminal, MsgError};
+use rustesge::core::{Storage, gerr};
+use rustesge::terminal::{Terminal};
 use rustesge::terminal::Command;
 use rustesge::room::Room;
 use rustesge::actor::Actor;
@@ -52,6 +52,7 @@ pub fn main() {
 		action_fn: Box::new(| _, _ | {
 			Ok(Box::new(| mut ingame, _ | {
 				ingame.append_response("done", "true");
+				Ok(())
 			}))
 		})
 	};	
@@ -64,11 +65,9 @@ pub fn main() {
 	let store_cmd = Command {
 		keyword: "store".to_string(),
 		action_fn: Box::new(| _, _ | {
-			Ok(Box::new(| mut ingame, _ | {
-				match ingame.ingame.serialize() {
-					Ok(res) => ingame.append_response("out", &res),
-					Err(err) => ingame.append_response("err", &format!("{:?}", err))
-				}
+			Ok(Box::new(| ingame, _ | {
+				ingame.ingame.serialize()?;
+				Ok(())
 			}))
 		})
 	};
@@ -76,7 +75,7 @@ pub fn main() {
 		keyword: "go".to_string(),
 		action_fn: Box::new(| _, keywords | {
 			if keywords.len() <= 1 {
-				Err(MsgError::new("Which direction?\n".to_string()))?
+				Err(gerr("Which direction?\n".to_string()))?
 			} else {
 				Ok(base::gen_move_player_action(keywords[1].trim().to_string()))
 			}
@@ -87,6 +86,7 @@ pub fn main() {
 		action_fn: Box::new(| _, _ | {
 			Ok(Box::new(| mut ingame, _ | {
 				ingame.append_response("err", "Test\n");
+				Ok(())
 			}))
 		})
 	};
@@ -104,6 +104,7 @@ pub fn main() {
 			terminal.add_command(genesis::gen_redescribe_room_cmd("redescribe_room"));
 			terminal.add_command(genesis::save_world_cmd("save".to_string()));
 			terminal.add_command(genesis::load_world_cmd("load".to_string()));
+			terminal.add_command(genesis::gen_empty_world_cmd("create_world".to_string()));
 			print!("Running terminal\n");
 			terminal.run();
 		},

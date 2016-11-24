@@ -1,11 +1,11 @@
 //! Create a world inside another world
 
 
-use core::{Storage, Action, Ingame};
+use core::{Storage, Action, Ingame, GameError};
 use room::Room;
 use actor::Actor;
-use base::{BaseGame, room_of_player};
-use terminal::{Command, multiline_input, MsgError};
+use base::{BaseGame, room_of_player, insert_item_in_player_room};
+use terminal::{Command, multiline_input};
 use std::io;
 use std::io::{Write, Read};
 use std::error::Error;
@@ -44,25 +44,23 @@ pub fn gen_add_room_action<S, O, O2>(id: S, name: Option<String>,
   		room.description = description.into();
   	}
 
-  	Box::new(move |mut ingame, _| ingame.insert_item(Box::new(room.clone())))
+  	Box::new(move |mut ingame, _| {
+  		ingame.insert_item(Box::new(room.clone()));
+  		Ok(())
+  	})
 }
 
 pub fn gen_exit_action<S: Into<String>>(exit_name: S, room_id: S) -> Action {
 	let exit_name: String = exit_name.into();
 	let room_id: String = room_id.into();
 	Box::new(move |mut ingame, _| {
-		let mut player_room = match room_of_player(ingame.ingame) {
-			Ok(room) => room,
-			Err(msg) => { 
-				ingame.append_response("err", &msg); 
-				return
-			}
-		};
+		let mut player_room = room_of_player(ingame.ingame)?;
 		if ingame.get_item::<Room>(&room_id).is_none() {
 			ingame.insert_item(Box::new(Room::new(room_id.clone())));
 		}
 		player_room.exits.insert(exit_name.clone(), room_id.clone());
 		ingame.insert_item(player_room);
+		Ok(())
 	})
 }
 
@@ -71,7 +69,7 @@ pub fn gen_exit_cmd<S: Into<String>>(keyword: S) -> Command{
 		keyword: keyword.into(),
 		action_fn: Box::new(|_, keywords | {
 			if keywords.len() < 3 {
-				Err(MsgError::new("Expected two arguments".to_string()))?;
+				Err(GameError::new("Expected two arguments".to_string()))?;
 			}
 			Ok(gen_exit_action(keywords[1].trim(), keywords[2].trim()))
 		})
@@ -81,29 +79,19 @@ pub fn gen_exit_cmd<S: Into<String>>(keyword: S) -> Command{
 pub fn gen_rename_room_action<S: Into<String>>(name: S) -> Action {
 	let name: String = name.into();
 	Box::new(move | mut ingame, _ | {
-		let mut player_room = match room_of_player(ingame.ingame) {
-			Ok(room) => room,
-			Err(msg) => { 
-				ingame.append_response("err", &msg); 
-				return
-			}
-		};
+		let mut player_room = room_of_player(ingame.ingame)?;
 		player_room.name = name.clone();
 		ingame.insert_item(player_room);
+		Ok(())
 	})
 }
 pub fn gen_redescribe_room_action<S: Into<String>>(name: S) -> Action {
 	let name: String = name.into();
 	Box::new(move | mut ingame, _ | {
-		let mut player_room = match room_of_player(ingame.ingame) {
-			Ok(room) => room,
-			Err(msg) => { 
-				ingame.append_response("err", &msg); 
-				return
-			}
-		};
+		let mut player_room = room_of_player(ingame.ingame)?;
 		player_room.description = name.clone();
 		ingame.insert_item(player_room);
+		Ok(())
 	})
 }
 pub fn gen_rename_room_cmd<S: Into<String>>(keyword: S) -> Command{
@@ -111,7 +99,7 @@ pub fn gen_rename_room_cmd<S: Into<String>>(keyword: S) -> Command{
 		keyword: keyword.into(),
 		action_fn: Box::new(|_, keywords | {
 			if keywords.len() < 2 {
-				Err(MsgError::new("Expected one argument".to_string()))?;
+				Err(GameError::new("Expected one argument".to_string()))?;
 			}
 			Ok(gen_rename_room_action(keywords[1].trim()))
 		})
@@ -151,7 +139,7 @@ pub fn save_world_cmd(keyword: String) -> Command {
 			let mut name = String::new();
 			io::stdin().read_line(&mut name)?;
 			save_world(ingame, name.trim().to_string())?;
-			Err(MsgError::new("".to_string()))?
+			Err(GameError::new("".to_string()))?
 		})
 	}
 }
@@ -162,7 +150,45 @@ pub fn load_world_cmd(keyword: String) -> Command {
 			let mut name = String::new();
 			io::stdin().read_line(&mut name)?;
 			load_world(ingame, name.trim().to_string())?;
-			Err(MsgError::new("".to_string()))?
+			Err(GameError::new("".to_string()))?
+		})
+	}
+}
+
+/// Create a very simple worly
+pub fn empty_world(player_name: &str, world_name: &str) -> Box<Storage> {
+	let player = Actor {
+		id: "player-actor".to_string(),
+		name: player_name.into(),
+		description: "You".to_string()
+	};
+	let base_game = BaseGame {
+		player: "player-actor".to_string()
+	};
+	let mut room = Room::new("init-room")
+				.with_name("Init")
+				.with_description("You are in an empty worly");
+	room.actors.push("player-actor".to_string());
+	Box::new(Storage::new(world_name.to_string())
+		.with_item(player)
+		.with_item(base_game)
+		.with_item(room))
+}
+
+pub fn gen_empty_world_cmd(keyword: String) -> Command {
+		Command {
+		keyword: keyword,
+		action_fn: Box::new(move |_, _ | {
+			let mut player_name = String::new();
+			let mut world_name = String::new();
+			println!("Player name:");
+			io::stdin().read_line(&mut player_name)?;
+			println!("World name:");
+			io::stdin().read_line(&mut world_name)?;
+			Ok(Box::new(move |mut ingame, _ | {
+				let world = empty_world(&player_name, &world_name);
+				insert_item_in_player_room(ingame, world)
+			}))
 		})
 	}
 }

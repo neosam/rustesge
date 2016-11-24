@@ -11,6 +11,7 @@ pub fn main() {
 		action_fn: Box::new(| _, _ | {
 			Ok(Box::new(| mut ingame, _ | {
 				ingame.append_response("done", "true");
+				Ok(())
 			}))
 		})
 	};
@@ -20,6 +21,7 @@ pub fn main() {
 			let keywords = keywords.join(" ").clone();
 			Ok(Box::new(move | mut ingame, _ | { 
 				ingame.append_response("out", &keywords);
+				Ok(())
 			}))
 		})
 	};

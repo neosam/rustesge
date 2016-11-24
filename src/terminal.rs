@@ -4,7 +4,6 @@ use std::io;
 use std::collections::HashMap;
 use std::io::Write;
 use std::error::Error;
-use std::fmt;
 
 pub struct Terminal {
 	pub ingame: Ingame,
@@ -17,28 +16,7 @@ pub struct Command {
 	pub action_fn: Box<Fn(&mut Ingame, &[&str]) -> Result<Action, Box<Error>>>
 }
 
-/// An error which contains an msg
-#[derive(Debug)]
-pub struct MsgError {
-	msg: String
-}
 
-impl fmt::Display for MsgError {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "{}", self.msg)
-	}
-}
-impl Error for MsgError {
-	fn description(&self) -> &str {
-		&self.msg
-	}
-}
-
-impl MsgError {
-	pub fn new(msg: String) -> Self {
-		MsgError { msg: msg }
-	}
-}
 
 
 impl Terminal {

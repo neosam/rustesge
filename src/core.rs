@@ -10,6 +10,44 @@ use std::collections::HashMap;
 use std::mem::swap;
 use rustc_serialize::json;
 use rustc_serialize::json::{EncoderError, DecoderError};
+use std::fmt;
+use std::error::Error;
+
+/// An error which contains an msg
+#[derive(Debug)]
+pub struct GameError {
+	msg: String
+}
+
+/// Default result type in the engine.
+pub type GameResult<T> = Result<T, Box<Error>>;
+
+impl fmt::Display for GameError {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "{}", self.msg)
+	}
+}
+impl Error for GameError {
+	fn description(&self) -> &str {
+		&self.msg
+	}
+}
+
+impl GameError {
+	/// Generates a new game error with the given message.
+	pub fn new<S: Into<String>>(msg: S) -> Self {
+		GameError { msg: msg.into() }
+	}
+}
+
+/// Shortcut to create a GameError with a given massage.
+pub fn gerr<S: Into<String>>(msg: S) -> GameError {
+	GameError::new(msg)
+}
+/// Shortcut to create a boxed GameError with a given message.
+pub fn berr<S: Into<String>>(msg: S) -> Box<GameError> {
+	Box::new(gerr(msg))
+}
 
 /// Contains the core game state with immutable storage.
 ///
@@ -164,7 +202,7 @@ impl Item {
 }
 
 /// Definition of an Action.
-pub type Action = Box<Fn(&mut MutIngame, u32)>;
+pub type Action = Box<Fn(&mut MutIngame, u32) -> GameResult<()>>;
 
 /// Holds the responses from the actions.
 pub struct Response {
@@ -264,7 +302,11 @@ impl Ingame {
 			{
 				let mut mutable_ingame = MutIngame { ingame: self };
 				for (i, action) in actions.iter() {
-					action(&mut mutable_ingame, *i);
+					match action(&mut mutable_ingame, *i) {
+						Ok(()) => (),
+						Err(err) => mutable_ingame
+									.append_response("err", err.description())
+					}
 				}
 			}
 			swap(&mut actions, &mut self.actions.actions);
@@ -274,7 +316,11 @@ impl Ingame {
 			swap(&mut actions, &mut self.actions.one_time_actions);
 			for action in actions {
 				let mut mutable_ingame = MutIngame { ingame: self };
-				action(&mut mutable_ingame, 0)
+				match action(&mut mutable_ingame, 0) {
+					Ok(()) => (),
+					Err(err) => mutable_ingame
+								.append_response("err", err.description())
+				}
 			}
 		}
 	}
@@ -437,7 +483,10 @@ impl Itemizeable for Storage {
 #[test]
 fn simple_action_test() {
 	let mut ingame = Ingame::new("storage");
-	let action: Action = Box::new(|mut mut_ingame, _| mut_ingame.append_response("out", "test"));
+	let action: Action = Box::new(|mut mut_ingame, _| {
+		mut_ingame.append_response("out", "test"); 
+		Ok(())
+	});
 	assert_eq!("", ingame.get_response("out"));
 	ingame.add_action(action);
 	assert_eq!("", ingame.get_response("out"));
@@ -453,6 +502,7 @@ fn remove_action_test() {
 	let action: Action = Box::new(|mut mut_ingame, i| {
 		mut_ingame.remove_action(i);
 		mut_ingame.append_response("out", "test");
+		Ok(())
 	});
 	assert_eq!("", ingame.get_response("out"));
 	ingame.add_action(action);
@@ -468,6 +518,7 @@ fn one_time_action_test() {
 	let mut ingame = Ingame::new("storage");
 	let action: Action = Box::new(|mut mut_ingame, _| {
 		mut_ingame.append_response("out", "test");
+		Ok(())
 	});
 	assert_eq!("", ingame.get_response("out"));
 	ingame.add_one_time_action(action);
