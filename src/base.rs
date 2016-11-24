@@ -89,12 +89,13 @@ pub fn items_in_room<'a>(ingame: &'a Ingame,
 }
 
 /// Get all actors from a room.
-pub fn actors_in_room(ingame: &Ingame, room: &Room) -> Vec<Box<Actor>> {
-	room.actors.iter()
-		.map(|x| ingame.get_item(x))
+pub fn actors_in_room<'a>(ingame: &'a Ingame, 
+					  room: &'a Room) -> 
+							Box<Iterator<Item=Box<Actor>> + 'a> {
+	Box::new(room.actors.iter()
+		.map(move |x| ingame.get_item(x))
 		.filter(|x| x.is_some())
-		.map(|x| x.unwrap())
-		.collect()
+		.map(|x| x.unwrap()))
 }
 
 /// Checks if the internal structure contains logical errors.
