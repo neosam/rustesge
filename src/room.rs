@@ -1,3 +1,7 @@
+#![warn(missing_docs)]
+
+//! Adds rooms to the game structure.
+
 use core;
 use core::Item;
 use core::serialize_hashmap;
@@ -7,17 +11,25 @@ use core::deserialize_vec;
 
 use std::collections::HashMap;
 
+/// Introduces rooms to storageable objects.
 #[derive(Clone, Debug)]
 pub struct Room {
+	/// The internal identifier.
 	pub id: String,
+	/// The name of the room.
 	pub name: String,
+	/// The description of the string.
 	pub description: String,
+	/// Item identifier of the room.
 	pub items: Vec<String>,
+	/// Actor identifier in the room.
 	pub actors: Vec<String>,
+	/// Exits and the identifier to a room id.
 	pub exits: HashMap<String, String>
 }
 
 impl Room {
+	/// Add a new room with the given id.
 	pub fn new<S>(id: S) -> Self 
 				where String: From<S> {
 		Room {
@@ -29,10 +41,18 @@ impl Room {
 			exits: HashMap::new()
 		}
 	}
+
+	/// Consumes the room and returns new one with the given name.
+	///
+	/// Use for initialization.
 	pub fn with_name<S: Into<String>>(mut self, name: S) -> Self {
 		self.name = name.into();
 		self
 	}
+
+	/// Consumes the room and returns new one with the given description.
+	///
+	/// Use for initialization.
 	pub fn with_description<S: Into<String>>(mut self, description: S) -> Self {
 		self.description = description.into();
 		self
