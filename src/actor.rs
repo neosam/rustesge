@@ -1,12 +1,21 @@
+#![warn(missing_docs)]
+
+//! Actors are somehow living creatures like the player or NPCs. 
+
 use core;
 use core::Item;
 
 use std::collections::HashMap;
 
+
+/// An item which  represents a living creature in the world. 
 #[derive(Clone)]
 pub struct Actor {
+	/// Internal identifier
 	pub id: String,
+	/// Name of the actor.
 	pub name: String,
+	/// More detailed description of the actor. 
 	pub description: String
 }
 
