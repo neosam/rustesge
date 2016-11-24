@@ -1,3 +1,6 @@
+#![warn(missing_docs)]
+
+//! Shell like UI over the terminal.
 use core::Ingame;
 use core::Action;
 use std::io;
@@ -5,14 +8,21 @@ use std::collections::HashMap;
 use std::io::Write;
 use std::error::Error;
 
+/// Main Terminal UI type.
 pub struct Terminal {
+	/// The main game engine
 	pub ingame: Ingame,
+	/// The registered commands
 	pub commands: HashMap<String, Command>,
+	/// The prompt string
 	pub prompt: String
 }
 
+/// A command which is executed 
 pub struct Command {
+	/// User keyword
 	pub keyword: String,
+	/// Action executed when the usert types the keyword.
 	pub action_fn: Box<Fn(&mut Ingame, &[&str]) -> Result<Action, Box<Error>>>
 }
 
@@ -20,6 +30,7 @@ pub struct Command {
 
 
 impl Terminal {
+	/// Create a new terminal with the given Ingame.
 	pub fn new(ingame: Ingame) -> Self {
 		Terminal {
 			ingame: ingame,
@@ -28,6 +39,7 @@ impl Terminal {
 		}
 	}
 
+	/// Runs the repl.
 	pub fn run(&mut self) {
 		print!("Commands: {}\n", self.commands.len());
 		loop {
@@ -66,11 +78,16 @@ impl Terminal {
 		}
 	}
 
+	/// Add a new command to the terminal.
 	pub fn add_command(&mut self, command: Command) {
 		self.commands.insert(command.keyword.clone(), command);
 	}
 }
 
+/// Requests a multiline String from the user.
+///
+/// This is for example used to get a description.  The inpot stops when
+/// the user adds inputs the term.
 pub fn multiline_input<S: Into<String>>(term: S) -> Result<String, io::Error> {
 	let term = term.into();
 	let mut res = String::new();
