@@ -7,6 +7,9 @@ use std::io;
 use std::collections::HashMap;
 use std::io::Write;
 use std::error::Error;
+use std::fmt::Display;
+use core::berr;
+use core::GameResult;
 
 /// Main Terminal UI type.
 pub struct Terminal {
@@ -39,6 +42,48 @@ impl Terminal {
 		}
 	}
 
+	/// Perform one stop by executing a command
+	///
+	/// # Error
+	/// Returns an error if the input produces an error.
+	pub fn step(&mut self, input: &str) -> GameResult<String> {
+		// Divide the keywords into the their tokens.
+		let keywords: Vec<&str> = input.split(" ").collect();
+
+		// Abort on no input
+		if keywords.len() == 0 {
+			return Err(berr("Keywords are empty"))
+		}
+
+		// Get the command entry according to the first token.
+		//
+		if let Some(command) = self.commands.get(keywords[0].trim()) {
+			// Extruct and run action.
+			// If the command replies an Ok, it will contain an action which
+			// will be added as one time action.
+			// If the command replies an Err, no ingame.step will be called
+			// And the error string will be printed.
+			let command_fn = &command.action_fn;
+			match command_fn(&mut self.ingame, &keywords) {
+				Ok(action) =>  {
+					self.ingame.add_one_time_action(action);
+					self.ingame.step();
+					let ingame_error = self.ingame.get_response("err");
+					if ingame_error.is_empty() {
+						Ok(format!("{}\n", self.ingame.get_response("out")))
+					} else {
+						Err(berr(format!("Error: {}\n", ingame_error)))
+					}
+				},
+				Err(err) => Err(berr(format!("{}", err)))
+			}
+		} else {
+			// Tell the user, the command was not found.
+			Err(berr(
+				format!("Could not find command '{}'\n", keywords[0].trim())))
+		}
+	}
+
 	/// Runs the repl.
 	pub fn run(&mut self) {
 		print!("Commands: {}\n", self.commands.len());
@@ -46,34 +91,10 @@ impl Terminal {
 			if self.ingame.get_response("done") != "" {
 				break;
 			}
-			print!("{}", self.prompt);
-			io::stdout().flush()
-				.expect("IO Error");
-			let mut input = String::new();
-			io::stdin().read_line(&mut input)
-				.expect("IO Error");
-			let keywords: Vec<&str> = input.split(" ").collect();
-			if keywords.len() == 0 {
-				break;
-			}
-			let command_option = self.commands.get(keywords[0].trim());
-			if let Some(command) = command_option {
-				let command_fn = &command.action_fn;
-				let action_option = command_fn(&mut self.ingame, &keywords);
-				match action_option {
-					Ok(action) =>  {
-						self.ingame.add_one_time_action(action);
-						self.ingame.step();
-						print!("{}\n", self.ingame.get_response("out"));
-						let ingame_error = self.ingame.get_response("err");
-						if !ingame_error.is_empty() {
-							print!("Error: {}\n", ingame_error);
-						}
-					},
-					Err(err) => print!("{}", err)
-				}
-			} else {
-				print!("Could not find command '{}'\n", keywords[0].trim());
+			let input = line_input(&self.prompt).expect("IO Error");
+			match self.step(&input) {
+				Ok(msg) => println!("{}", msg),
+				Err(err) => println!("{}", err)
 			}
 		}
 	}
@@ -82,6 +103,18 @@ impl Terminal {
 	pub fn add_command(&mut self, command: Command) {
 		self.commands.insert(command.keyword.clone(), command);
 	}
+}
+
+/// Display the prompt and reads a single line from stdin.
+///
+/// Does not contain a trailing /n.  The prompt does not need a newline,
+/// stdout will be flushed.
+pub fn line_input<S: Display>(prompt: S) -> Result<String, io::Error> {
+	let mut res = String::new();
+	print!("{}", prompt);
+	io::stdout().flush()?;
+	io::stdin().read_line(&mut res)?;
+	Ok(res.trim().to_string())
 }
 
 /// Requests a multiline String from the user.
