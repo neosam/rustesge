@@ -5,8 +5,7 @@ use core::{Storage, Action, Ingame, GameError};
 use room::Room;
 use actor::Actor;
 use base::{BaseGame};
-use terminal::{Command, multiline_input};
-use std::io;
+use terminal::{Command, multiline_input, line_input};
 use std::io::{Write, Read};
 use std::error::Error;
 use std::fs;
@@ -150,8 +149,7 @@ pub fn save_world_cmd(keyword: String) -> Command {
 	Command {
 		keyword: keyword,
 		action_fn: Box::new(|ingame, _ | {
-			let mut name = String::new();
-			io::stdin().read_line(&mut name)?;
+			let name = line_input("World input: ")?;
 			save_world(ingame, name.trim().to_string())?;
 			Err(GameError::new("".to_string()))?
 		})
@@ -163,9 +161,8 @@ pub fn load_world_cmd(keyword: String) -> Command {
 	Command {
 		keyword: keyword,
 		action_fn: Box::new(|mut ingame, _ | {
-			let mut name = String::new();
-			io::stdin().read_line(&mut name)?;
-			load_world(ingame, name.trim().to_string())?;
+			let name = line_input("World name: ")?;
+			load_world(ingame, name)?;
 			Err(GameError::new("".to_string()))?
 		})
 	}
@@ -196,12 +193,8 @@ pub fn gen_empty_world_cmd(keyword: String) -> Command {
 		Command {
 		keyword: keyword,
 		action_fn: Box::new(move |_, _ | {
-			let mut player_name = String::new();
-			let mut world_name = String::new();
-			println!("Player name:");
-			io::stdin().read_line(&mut player_name)?;
-			println!("World name:");
-			io::stdin().read_line(&mut world_name)?;
+			let player_name = line_input("Player name: ")?;
+			let world_name = line_input("World name: ")?;
 			Ok(Box::new(move |mut ingame, _ | {
 				let world = empty_world(&player_name, &world_name);
 				ingame.insert_item_in_player_room(world)
