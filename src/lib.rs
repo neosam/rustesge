@@ -5,6 +5,7 @@ pub mod actor;
 pub mod base;
 pub mod terminal;
 pub mod genesis;
+pub mod terminal_genesis;
 
 #[cfg(test)]
 mod tests {

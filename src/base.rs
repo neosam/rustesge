@@ -4,7 +4,8 @@
 //! This incudes: Actors, Rooms, Ingame setup.
 
 use core;
-use core::{Ingame, MutIngame, GameResult, GameError, Itemizeable, gerr, berr};
+use core::{Ingame, MutIngame, GameResult, GameError, Itemizeable, Meta, 
+				gerr, berr};
 use core::Item;
 use actor::Actor;
 use room::Room;
@@ -221,7 +222,7 @@ pub struct BaseGame {
 impl core::Itemizeable for BaseGame {
 	fn from_item(item: &Item) -> Option<Box<Self>> {
 		Some(Box::new(BaseGame {
-			player: item.item_meta.get("player").cloned().unwrap_or(String::new())
+			player: item.meta_text_or_default("player", "").to_string()
 		}))
 	}
 	fn to_item(&self) -> core::Item {
@@ -230,7 +231,8 @@ impl core::Itemizeable for BaseGame {
 		item
 	}
 	fn merge_into_item(&self, item: &mut Item) {
-		item.item_meta.insert("player".to_string(), self.player.clone());
+		item.item_meta.insert("player".to_string(), 
+					Meta::Text(self.player.clone()));
 	}
 	fn get_id(&self) -> &str {
 		"base_game"

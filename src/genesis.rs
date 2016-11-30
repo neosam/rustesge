@@ -10,7 +10,6 @@ use std::io::{Write, Read};
 use std::error::Error;
 use std::fs;
 
-
 /// Get ste minimal storage required
 pub fn initial_genesis(player_name: &str) -> Storage {
 	let player = Actor {

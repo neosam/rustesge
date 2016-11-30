@@ -3,7 +3,7 @@
 //! Actors are somehow living creatures like the player or NPCs. 
 
 use core;
-use core::Item;
+use core::{Item, Meta};
 
 use std::collections::HashMap;
 
@@ -21,11 +21,12 @@ pub struct Actor {
 
 impl core::Itemizeable for Actor {
 	fn from_item(item: &Item) -> Option<Box<Self>> {
+
 		if item.item_type != "actor" {
 			None
 		} else {
-			let name: String = item.item_meta.get("name").cloned().unwrap_or(String::new());
-			let desc = item.item_meta.get("desc").cloned().unwrap_or(String::new());	
+			let name = item.meta_text_or_default("name", "").to_string();
+			let desc = item.meta_text_or_default("desc", "").to_string();	
 			Some(Box::new(Actor {
 				id: item.item_id.clone(),
 				name: name,
@@ -44,8 +45,8 @@ impl core::Itemizeable for Actor {
 	}
 	fn merge_into_item(&self, item: &mut Item) {
 		let metas = &mut item.item_meta;
-		metas.insert("name".to_string(), self.name.clone());
-		metas.insert("desc".to_string(), self.description.clone());
+		metas.insert("name".to_string(), Meta::Text(self.name.clone()));
+		metas.insert("desc".to_string(), Meta::Text(self.description.clone()));
 	}
 	fn get_id(&self) -> &str {
 		&self.id

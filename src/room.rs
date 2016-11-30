@@ -3,11 +3,9 @@
 //! Adds rooms to the game structure.
 
 use core;
-use core::Item;
+use core::{Item, Meta};
 use core::serialize_hashmap;
 use core::deserialize_hashmap;
-use core::serialize_vec;
-use core::deserialize_vec;
 
 use std::collections::HashMap;
 
@@ -64,13 +62,16 @@ impl core::Itemizeable for Room {
 		if item.item_type != "room" {
 			None
 		} else {
-			let name: String = item.item_meta.get("name").cloned().unwrap_or(String::new());
-			let desc = item.item_meta.get("desc").cloned().unwrap_or(String::new());
-			let items_str = item.item_meta.get("items").cloned().unwrap_or(String::new());
-			let items = deserialize_vec(&items_str);
-			let actors_str = item.item_meta.get("actors").cloned().unwrap_or(String::new());
-			let actors = deserialize_vec(&actors_str);
-			let exits = deserialize_hashmap(&item.item_meta.get("exits").cloned().unwrap_or(String::new()));
+			let name: String = item.meta_text_or_default("name", "").to_string();
+			let desc = item.meta_text_or_default("desc", "").to_string();
+			let items: Vec<String> = 
+				item.meta_textvec_or_default("items", &[])
+						.iter().map(|x| x.to_string()).collect();
+			let actors: Vec<String> = 
+				item.meta_textvec_or_default("actors", &[])
+						.iter().map(|x| x.to_string()).collect();
+			let exits = deserialize_hashmap(
+					&item.meta_text_or_default("exits", "").to_string());
 			Some(Box::new(Room {
 				id: item.item_id.clone(),
 				name: name,
@@ -92,11 +93,11 @@ impl core::Itemizeable for Room {
 	}
 	fn merge_into_item(&self, item: &mut Item) {
 		let metas = &mut item.item_meta;
-		metas.insert("name".to_string(), self.name.clone());
-		metas.insert("desc".to_string(), self.description.clone());
-		metas.insert("items".to_string(), serialize_vec(&self.items));
-		metas.insert("actors".to_string(), serialize_vec(&self.actors));
-		metas.insert("exits".to_string(), serialize_hashmap(&self.exits));
+		metas.insert("name".to_string(), Meta::Text(self.name.clone()));
+		metas.insert("desc".to_string(), Meta::Text(self.description.clone()));
+		metas.insert("items".to_string(), Meta::TextVec(self.items.clone()));
+		metas.insert("actors".to_string(), Meta::TextVec(self.actors.clone()));
+		metas.insert("exits".to_string(), Meta::Text(serialize_hashmap(&self.exits)));
 	}
 	fn get_id(&self) -> &str {
 		&self.id

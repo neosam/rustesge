@@ -178,6 +178,101 @@ impl Actions {
 
 }
 
+/// Item which is held by the Storage.
+#[derive(Clone, Debug, RustcEncodable, RustcDecodable)]
+pub enum Meta {
+	/// String content 
+	Text(String),
+	/// Binary content
+	Binary(Vec<u8>),
+	/// Vector of Strings
+	TextVec(Vec<String>),
+	/// A number
+	Int(i32)
+}
+
+impl Meta {
+	/// Get a reference to the text if possible.
+	///
+	/// Returns None if this is not a Text.
+	pub fn text_ref(&self) -> Option<&String> {
+		match *self {
+			Meta::Text(ref text) => Some(text),
+			_ => None
+		}
+	}
+
+	/// Get a mutable reference to the text if possible.
+	///
+	/// Returns None if this is not a Text.
+	pub fn text_mut(&mut self) -> Option<&mut String> {
+		match *self {
+			Meta::Text(ref mut text) => Some(text),
+			_ => None
+		}
+	}
+
+	/// Get a reference to the binary data if possible.
+	///
+	/// Returns None if this is not Binary.
+	pub fn binary_ref(&self) -> Option<&Vec<u8>> {
+		match *self {
+			Meta::Binary(ref bin) => Some(bin),
+			_ => None
+		}
+	}
+
+	/// Get a mutable reference to the binary data if possible.
+	///
+	/// Returns None if this is not Binary.
+	pub fn binary_mut(&mut self) -> Option<&mut Vec<u8>> {
+		match *self {
+			Meta::Binary(ref mut bin) => Some(bin),
+			_ => None
+		}
+	}
+
+	/// Get a reference to the text vector if possible.
+	///
+	/// Returns None if this is not a Text Vector.
+	pub fn textvec_ref(&self) -> Option<&Vec<String>> {
+		match *self {
+			Meta::TextVec(ref vec) => Some(vec),
+			_ => None
+		}
+	}
+
+	/// Get a mutable reference to the text vector if possible.
+	///
+	/// Returns None if this is not a Text Vector.
+	pub fn textvec_mut(&mut self) -> Option<&mut Vec<String>> {
+		match *self {
+			Meta::TextVec(ref mut vec) => Some(vec),
+			_ => None
+		}
+	}
+
+	/// Get the i32 integer if possible.
+	///
+	/// Returns None if this is not an Integer.
+	pub fn int(&self) -> Option<i32> {
+		match *self {
+			Meta::Int(i) => Some(i),
+			_ => None
+		}
+	}
+
+	/// Get a mutable i32 reference integer if possible.
+	///
+	/// Returns None if this is not an Integer.
+	pub fn int_mut(&mut self) -> Option<&mut i32> {
+		match *self {
+			Meta::Int(ref mut i) => Some(i),
+			_ => None
+		}
+	}
+}
+
 /// Any item in a game (Room, Actor, Money, the game state)
 #[derive(Clone, Debug, RustcEncodable, RustcDecodable)]
 pub struct Item {
@@ -188,8 +283,9 @@ pub struct Item {
 	pub item_id: String,
 
 	/// Additional information like name and description.
-	pub item_meta: HashMap<String, String>
+	pub item_meta: HashMap<String, Meta>
 }
+
 impl Item {
 	/// New item with given type and item ID.
 	pub fn new(item_type: String, item_id: String) -> Self {
@@ -198,6 +294,32 @@ impl Item {
 			item_id: item_id,
 			item_meta: HashMap::new()
 		}
+	}
+
+	/// Get a reference to the meta text if possible or get the default value
+	/// if not possible.
+	pub fn meta_text_or_default<'a>(&'a self, key: &str, default: &'a str) -> &'a str {
+		let meta = match self.item_meta.get(key) {
+			Some(item) => item,
+			None => return default
+		};
+		match meta.text_ref() {
+			Some(text) => text,
+			None => return default
+		}
+	}
+
+	/// Get  a reference to the Vec as Slice if possible or get the default
+	/// value if not possible.
+	pub fn meta_textvec_or_default<'a>(&'a self, key: &str, default: &'a [String]) -> &'a [String] {
+		let meta = match self.item_meta.get(key) {
+			Some(item) => item,
+			None => return default
+		};
+		match meta.textvec_ref() {
+			Some(text) => text,
+			None => return default
+		}		
 	}
 }
 
@@ -438,25 +560,28 @@ pub fn deserialize_hashmap(string: &str) -> HashMap<String, String> {
 	json::decode(string).unwrap()
 }
 
+macro_rules! otry {
+    ($item:expr) => {
+    	match $item {
+    		Some(x) => x,
+    		None => return None
+    	}
+    }
+}
 
 impl Itemizeable for Storage {
 	fn from_item(item: &Item) -> Option<Box<Self>> {
 		if &item.item_type != "storage" {
 			None
 		} else {
-			if let Some(item_map) = item.item_meta.get("items") {
-				if let Ok(items) = json::decode(&item_map) {
-					let storage = Storage {
-						id: item.item_id.clone(),
-						items: items
-					};
-					Some(Box::new(storage))
-				} else {
-					None
-				}
-			} else {
-				None
-			}
+			let item_meta = otry!(item.item_meta.get("items"));
+			let item_map = otry!(item_meta.text_ref());
+			let items = otry!(json::decode(&item_map).ok());
+			let storage = Storage {
+				id: item.item_id.clone(),
+				items: items
+			};
+			Some(Box::new(storage))
 		}
 	}
 
@@ -471,7 +596,7 @@ impl Itemizeable for Storage {
 	}
 
 	fn merge_into_item(&self, item: &mut Item) {
-		let items = json::encode(&self.items).unwrap();
+		let items = Meta::Text(json::encode(&self.items).unwrap());
 		item.item_meta.insert("items".to_string(), items);
 	}
 
